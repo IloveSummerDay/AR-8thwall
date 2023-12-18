@@ -400,8 +400,9 @@
             camera = new THREE.PerspectiveCamera(63, width / height, 1, 10000);
             camera.position.set(0, 0, 5);
             camera.lookAt(0, 0, 0);
-            const light = new THREE.AmbientLight(0xffffff, 0.9); // soft white light
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1); // 创建平行光源
+            const light = new THREE.AmbientLight(0xffffff, 1); // soft white light
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.5); // 创建平行光源
+            // const sunLight = new THREE.(0xffffff, 1.5); // 创建平行光源
             sunLight.position.set(0, 1, 0);
 
             scene.add(sunLight);
@@ -453,7 +454,7 @@
                         // name='Car006'的Mesh为车窗
                         if (child.name == 'Car006') {
                             child.material.transparent = true; // 允许材质透明度
-                            child.material.opacity = 0.4; // 设置透明度值
+                            child.material.opacity = 0.3; // 设置透明度值
                             child.material.emissive = child.material.color;
                             child.material.emissiveMap = child.material.map;
                             return
