@@ -1,0 +1,611 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>Master</title>
+
+    <style type="text/css">
+        .approve_true {
+            z-index: 9999;
+            position: fixed;
+            bottom: 50px;
+            width: 100%
+        }
+
+        .approve_true .buttonBox {
+            width: 100%;
+            margin: 0 auto;
+            text-align: center;
+
+        }
+
+        .approve_true .buttonBox .in {
+            width: 20%;
+            height: 40;
+        }
+    </style>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.9.0/vconsole.min.js"></script>
+    <script>
+        var vConsole = new VConsole();
+    </script>
+    <script src="https://www.wechatvr.org/webview/js/three.min.js"></script>
+    <script src="https://www.wechatvr.org/webview/js/jsfeat-min.js"></script>
+    <script src="https://www.wechatvr.org/webview/js/GLTFLoader.js"></script>
+    <script src="https://www.wechatvr.org/webview/js/OrbitControls.js"></script>
+
+</head>
+
+<body>
+    <button id="start" style="position: absolute;z-index: 500">Start</button>
+    <video id='camera'
+        style="position: absolute;left: 0;top: 0;object-fit: cover;width: 100vw;height: 100vh;z-index: -1;" autoPlay
+        playsInline>Video stream not available.</video>
+    <canvas id="canvas"
+        style="position: absolute;top:0px;left:0px;z-index: 0;width: 100%;height: 100%;display: none;"></canvas>
+    <!-- <div id="table"></div> -->
+    <!-- <div class="approve_true">
+        <div class="buttonBox"> -->
+    <!-- <button class="in" onclick="Three.changeColor()">改变颜色</button>
+            <button class="in" onclick="Three.changeColor2()">原始颜色</button>
+            <button class="in" onclick="Three.transparantAdd()">增加透明度</button>
+            <button class="in" onclick="Three.transparantSub()">降低透明度</button> -->
+    <!-- <button class="in" onclick="Three.rotate()">放大</button>
+            <button class="in" onclick="Three.rotate()">缩小</button>
+            <button class="in" onclick="Three.rotate()">旋转</button>
+            <button class="in" onclick="Three.rotate2()">轴测</button> -->
+    <!-- </div>
+    </div> -->
+</body>
+
+<script>
+    let rotA = 0
+    // 处理设备方向的控制，可以捕捉设备的方向信息
+    function addRote() {
+        let a = [1, -1, -1];
+        (function () {
+
+            const _changeEvent = {
+                type: 'change'
+            };
+            var qtn = []
+            var index = 0
+            class DeviceOrientationControls extends THREE.EventDispatcher {
+
+                constructor(object) {
+
+                    super();
+
+                    if (window.isSecureContext === false) {
+
+                        console.error('THREE.DeviceOrientationControls: DeviceOrientationEvent is only available in secure contexts (https)');
+
+                    }
+
+                    const scope = this;
+                    const EPS = 0.000001;
+                    const lastQuaternion = new THREE.Quaternion();
+                    this.object = object;
+                    this.object.rotation.reorder('YXZ');
+                    this.enabled = true;
+                    this.deviceOrientation = {};
+                    this.screenOrientation = 0;
+                    this.alphaOffset = Math.PI / 2; // radians  加往左，减往右
+                    this.betaOffset = 0; // radians
+                    this.gammaOffset = 0; // radians
+
+                    const onDeviceOrientationChangeEvent = function (event) {
+
+                        scope.deviceOrientation = event;
+
+                    };
+
+                    const onScreenOrientationChangeEvent = function () {
+
+                        scope.screenOrientation = window.orientation || 0;
+
+                    }; // The angles alpha, beta and gamma form a set of intrinsic Tait-Bryan angles of type Z-X'-Y''
+
+
+                    const setObjectQuaternion = function (quaternion, alpha, beta, gamma, orient) {
+                        const _zee = new THREE.Vector3(0, 0, 1);
+
+                        const _euler = new THREE.Euler();
+                        const _q0 = new THREE.Quaternion();
+
+                        const _q1 = new THREE.Quaternion(Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
+
+                        var delay = 1
+                        qtn[index] = {
+                            a: alpha, b: beta, g: gamma
+                        }
+
+                        let cur = index == delay ? 0 : index + 1
+                        if (qtn[cur] != undefined) {
+                            var qbeta = qtn[cur].b
+                            var qalpha = qtn[cur].a
+                            var qgamma = qtn[cur].g
+
+
+                            cur = index == delay ? 0 : index - 1
+
+                            _euler.set(qbeta, qalpha, - qgamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
+
+
+                            quaternion.setFromEuler(_euler); // orient the device
+
+                            quaternion.multiply(_q1); // camera looks out the back of the device, not the top
+
+                            quaternion.multiply(_q0.setFromAxisAngle(_zee, - orient)); // adjust for screen orientation
+
+                            quaternion.x *= a[0]
+                            quaternion.y *= a[1]
+                            quaternion.z *= a[2]
+                        }
+                        index++
+                        if (index > delay) index = 0
+
+                    };
+
+                    this.connect = function () {
+
+                        onScreenOrientationChangeEvent(); // run once on load
+                        // iOS 13+
+
+                        if (window.DeviceOrientationEvent !== undefined && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+
+                            window.DeviceOrientationEvent.requestPermission().then(function (response) {
+
+                                if (response == 'granted') {
+
+                                    window.addEventListener('orientationchange', onScreenOrientationChangeEvent);
+                                    window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent);
+
+                                }
+
+                            }).catch(function (error) {
+
+                                console.error('THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:', error);
+
+                            });
+
+                        } else {
+
+                            window.addEventListener('orientationchange', onScreenOrientationChangeEvent);
+                            window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent);
+
+                        }
+
+                        scope.enabled = true;
+
+                    };
+
+                    this.disconnect = function () {
+
+                        window.removeEventListener('orientationchange', onScreenOrientationChangeEvent);
+                        window.removeEventListener('deviceorientation', onDeviceOrientationChangeEvent);
+                        scope.enabled = false;
+
+                    };
+
+                    this.update = function (change, al, be, ga) {
+
+
+                        if (scope.enabled === false) return;
+                        const device = scope.deviceOrientation;
+
+                        if (change) {
+                            scope.alphaOffset += al
+                            scope.betaOffset = be
+                            scope.gammaOffset = ga
+                        }
+
+                        if (device) {
+                            //弧度
+                            //	document.getElementById('x').innerHTML = 'x: ' + device.alpha + ' y: ' + device.beta + ' z: ' + device.gamma
+                            const alpha = device.alpha ? device.alpha * (Math.PI / 180) + scope.alphaOffset : 0; // Z
+
+                            const beta = device.beta ? device.beta * (Math.PI / 180) + scope.betaOffset : 0; // X'
+
+                            const gamma = device.gamma ? device.gamma * (Math.PI / 180) + scope.gammaOffset : 0; // Y''
+
+                            const orient = scope.screenOrientation ? scope.screenOrientation * (Math.PI / 180) : 0; // O
+
+
+
+                            setObjectQuaternion(scope.object.quaternion, alpha, beta, gamma, orient);
+
+                            if (8 * (1 - lastQuaternion.dot(scope.object.quaternion)) > EPS) {
+
+                                lastQuaternion.copy(scope.object.quaternion);
+                                scope.dispatchEvent(_changeEvent);
+
+                            }
+
+                        }
+
+                    };
+
+                    this.dispose = function () {
+
+                        scope.disconnect();
+
+                    };
+
+                    this.connect();
+
+                }
+
+            }
+
+            THREE.DeviceOrientationControls = DeviceOrientationControls;
+
+        })();
+    }
+</script>
+
+<script>
+    let width = window.innerWidth || document.documentElement.clientWidth;
+    let height = window.innerHeight || document.documentElement.clientHeight;
+
+    //var modelurl = "https://www.wechatvr.org/webxr_model_lib/8th_wall_glb/1212/car-656462x1o5.glb" 
+    //var modelurl = "https://www.wechatvr.org/webxr_model_lib/8th_wall_glb/1212/retro-tv-k6ldw506fb.glb" 
+    // var modelurl = "https://www.wechatvr.org/webxr_model_lib/8th_wall_glb/1212/coconut-single-8dg5kau4w4.glb"
+    var modelurl = './car-656462x1o5.glb'
+
+
+    const CameraV = getCameraVideo(document.getElementById("camera"))
+    const Main = main()
+    const Three = three()
+    const startBtn = document.getElementById('start')
+    startBtn.addEventListener('click', start)
+
+
+
+
+    function start() {
+        startBtn.style.display = 'none'
+        // addRote()
+        // Three.rot()
+        Main.beforeLoop()
+        Main.mainLoop()
+    }
+
+    // main() 外部调用 mainLoop() 函数来启动主循环，并在主循环开始之前调用 beforeLoop() 函数来进行一些准备工作
+    function main() {
+        function beforeLoop() {
+            // 初始化变量、设置场景或执行其他必要的操作
+            // ....
+        }
+        function mainLoop() {
+            Three.render()
+            requestAnimationFrame(mainLoop)
+        }
+
+
+        return {
+            mainLoop,
+            beforeLoop
+        }
+    }
+
+    // 实现视频捕获和图像处理功能，包括获取视频流、播放视频、在画布上绘制视频帧以及获取画布中的图像数据
+    function getCameraVideo(cameraVideo) {
+        let onPlay = 0
+        let canvas = document.getElementById('canvas')
+        let ctx = canvas.getContext('2d')
+        canvas.width = width
+        canvas.height = height
+        getVideoSafira()
+        setTimeout(playVideo, 500)
+
+        function playVideo() {
+            if (onPlay == 0) {
+                cameraVideo.play()
+            } else return
+            setTimeout(playVideo, 100)
+        }
+
+        function getVideoSafira() {
+
+            if (navigator.mediaDevices === undefined || navigator.mediaDevices.enumerateDevices === undefined ||
+                navigator.mediaDevices.getUserMedia === undefined) {
+                alert('getUserMedia not supported in this browser.');
+                return;
+            }
+
+            navigator.mediaDevices.enumerateDevices().then(function (devices) {
+                navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        facingMode: "environment",
+                        width: {
+                            min: 0,
+                            ideal: height,
+                            max: 4000
+                        },
+                        height: {
+                            min: 0,
+                            ideal: width,
+                            max: 5000
+                        } //在safari上wid和hi反过来
+                    }
+                })
+                    .then(captureVideo)
+                    .catch(function (err) {
+                        console.log(err.name + ": " + err.message);
+                    });
+            }).catch(function (err) {
+                console.log(err.name + ": " + err.message);
+            });
+        }
+        //start show video on screen
+        function captureVideo(stream) {
+
+            // 旧的浏览器可能没有srcObject
+            if ("srcObject" in cameraVideo) {
+                cameraVideo.srcObject = stream;
+            } else {
+                cameraVideo.src = window.URL.createObjectURL(stream);
+            }
+            cameraVideo.onloadedmetadata = function (e) {
+                onPlay = 1
+                cameraVideo.play();
+                console.log("width：" + cameraVideo.videoWidth + " height：" + cameraVideo.videoHeight);
+            }
+        }
+
+        function getData() {
+            if (onPlay) {
+                ctx.drawImage(cameraVideo, 0, 0, width, height);
+                return ctx.getImageData(0, 0, width, height);
+            } else return 0
+        }
+
+        return {
+            getData
+        }
+    }
+
+
+    function three() {
+        var renderer, camera, scene, controls
+        var hotPlane, hotPlane1, modelPlane
+        var group = new THREE.Group()
+        var touchX, touchY
+        var control
+        var rotateY = false;
+        var emissive_ = [], color_ = [];
+
+        init()
+        initControl()
+        loadModel(modelurl)
+
+        function init() {
+            scene = new THREE.Scene();
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true
+            });
+            renderer.setClearAlpha(0);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(width, height);
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = '0';
+            renderer.domElement.style.left = '0';
+            document.body.appendChild(renderer.domElement);
+            camera = new THREE.PerspectiveCamera(63, width / height, 1, 10000);
+            camera.position.set(0, 0, 5);
+            camera.lookAt(0, 0, 0);
+            const light = new THREE.AmbientLight(0xffffff, 0.9); // soft white light
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1); // 创建平行光源
+            sunLight.position.set(0, 1, 0);
+
+            scene.add(sunLight);
+            scene.add(light);
+            scene.add(camera);
+        }
+
+        function loadModel(url) {
+
+            //创建gltf加载器
+            var loader = new THREE.GLTFLoader();
+
+            loader.load(url, function (gltf) {
+                console.log(gltf.scene);
+                //gltf.scene.scale.set(10, 10, 10);
+                scene.add(gltf.scene);
+
+                // 遍历每个子对象
+                gltf.scene.traverse(function (child) {
+                    // 车身
+                    if (child.isMesh) {
+                        const pbrMaterial = new THREE.MeshPhysicalMaterial({
+                            color: child.material.color, // 设置基础颜色
+                            roughness: 0.5, // 设置粗糙度
+                            metalness: 0.5, // 设置金属度
+                            envMapIntensity: 1, // 设置环境映射强度
+                            clearcoat: 0.5, // 设置清漆涂层
+                            clearcoatRoughness: 0.5 // 设置清漆涂层的粗糙度
+                        });
+                        // 检查对象有无贴图、材质如何
+                        // if (child.material) {
+                        //     // 获取子对象的材质属性
+                        //     const material = child.material;
+
+                        //     // 输出材质的类型
+                        //     console.log('材质类型:', material.type);
+
+                        //     // 根据需要可以进一步检查其他材质属性
+                        //     // 例如判断是否有纹理贴图
+                        //     if (material.map) {
+                        //         console.log('有纹理贴图');
+                        //     } else {
+                        //         console.log('没有纹理贴图');
+                        //     }
+                        // } else {
+                        //     console.log('子对象没有材质');
+                        // }
+
+                        // name='Car006'的Mesh为车窗
+                        if (child.name == 'Car006') {
+                            child.material.transparent = true; // 允许材质透明度
+                            child.material.opacity = 0.4; // 设置透明度值
+                            child.material.emissive = child.material.color;
+                            child.material.emissiveMap = child.material.map;
+                            return
+                        }
+                        // 关闭子网格对象的视锥体剔除
+                        child.frustumCulled = false;
+                        //模型阴影
+                        child.castShadow = true;
+                        // 给模型添加 PBR 材质
+                        child.material = pbrMaterial;
+
+                        //模型自发光
+                        // child.material.emissive = child.material.color;
+                        // child.material.emissiveMap = child.material.map;
+                    }
+                    // 车轮
+                    if (child.isGroup) {
+                        // console.log('-----' + child.name + '-----');
+                        child.traverse(function (groupChild) {
+                            if (groupChild.isMesh) {
+                                // console.log(groupChild.name);
+                                groupChild.material.transparent = true; // 允许材质透明度
+                                groupChild.material.opacity = 0.1; // 设置透明度值
+                                groupChild.material = new THREE.MeshPhysicalMaterial({
+                                    color: groupChild.material.color, // 设置基础颜色
+                                    // color: 0xffffff, // 设置基础颜色
+                                    roughness: 0.9, // 设置粗糙度
+                                    metalness: 0.8, // 设置金属度
+                                    envMapIntensity: 1, // 设置环境映射强度
+                                    clearcoat: 0.5, // 设置清漆涂层
+                                    clearcoatRoughness: 0.5, // 设置清漆涂层的粗糙度
+                                    transparent: true, // 允许材质透明度
+                                    opacity: 0.5, // 设置透明度值
+                                });
+                            }
+                        });
+                    }
+                })
+
+
+            }, function (xhr) { // 显示加载进度
+                if ((xhr.loaded / xhr.total * 100) == 100) {
+                    //播放音频
+                    // document.getElementById("AudioFYN").play();
+                }
+
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            }, function (error) { // 在加载过程中出现错误时, 输出错误信息
+                console.log('【在加载过程中出现错误】', error);
+            });
+
+        }
+
+        function initControl() {
+            control = new THREE.OrbitControls(camera, renderer.domElement);
+        }
+        function render() {
+            control.update();    //更新控制器   
+            renderer.render(scene, camera)
+            if (rotateY) {
+                scene.getObjectByName('gltfscene').rotateY(0.01);
+            }
+        }
+        function add(mesh) {
+            scene.add(mesh)
+        }
+        function remove(mesh) {
+            scene.remove(mesh)
+        }
+
+        // 用于处理设备方向，从而控制相机的旋转
+        function rot() {
+            controls = new THREE.DeviceOrientationControls(camera);
+            animate()
+            function animate() {
+                controls.update();
+                render()
+                requestAnimationFrame(animate)
+            }
+        }
+        function saveOriginalColor() {
+            for (var i = 0; i < scene.getObjectByName('gltfscene').children[0].children[0].children.length; i++) {
+                emissive_.push(scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.emissive);
+                color_.push(scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.color);
+            }
+        }
+        // 改变颜色
+        function changeColor() {
+            let s = scene.getObjectByName('gltfscene');
+
+            for (var i = 0; i < scene.getObjectByName('gltfscene').children[0].children[0].children.length; i++) {
+
+                scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.emissive = new THREE.Color(0x696969);
+                scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.color = new THREE.Color(0x000000);
+            }
+        }
+        function changeColor2() {
+            for (var i = 0; i < scene.getObjectByName('gltfscene').children[0].children[0].children.length; i++) {
+                scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.emissive = emissive_[i];
+                scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.color = color_[i];
+            }
+        }
+
+
+
+        // 透明度
+        function transparantAdd() {
+            for (var i = 0; i < scene.getObjectByName('gltfscene').children[0].children[0].children.length; i++) {
+                if (scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.opacity > 0.1) {
+                    scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.transparent = true;
+                    scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.opacity -= 0.1;   // 透明度
+                }
+            }
+        }
+        function transparantSub() {
+            for (var i = 0; i < scene.getObjectByName('gltfscene').children[0].children[0].children.length; i++) {
+                if (scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.opacity < 1) {
+                    scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.transparent = true;
+                    scene.getObjectByName('gltfscene').children[0].children[0].children[i].material.opacity += 0.1;   // 透明度
+                }
+            }
+        }
+
+        // 旋转
+        function rotate() {
+            if (rotateY == false)
+                rotateY = true;
+            else
+                rotateY = false;
+        }
+        // 轴测
+        function rotate2() {
+            scene.getObjectByName('gltfscene').rotateY(90);
+        }
+
+        return {
+            camera,
+            rot,
+            render,
+            loadModel,
+            changeColor,
+            changeColor2,
+            transparantAdd,
+            transparantSub,
+            rotate,
+            rotate2
+
+        }
+    }
+
+
+</script>
+
+</html>
