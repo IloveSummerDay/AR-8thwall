@@ -1,0 +1,10 @@
+index.html放服务器上即可使用
+
+问题：1）car模型加载后全黑，若给材质加上自发光属性，材质体验效果不佳
+	对标参考效果：https://www.8thwall.com/playground/place-model   （需翻墙访问）
+
+      2）tv模型加载后偏黑
+	对标参考效果：https://www.8thwall.com/8thwall/openai-aframe    （需翻墙访问）
+
+          3）城堡模型材质
+	对标参考效果：https://www.8thwall.com/8thwall/manipulate-aframe  （需翻墙访问）
