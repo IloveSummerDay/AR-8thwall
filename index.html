@@ -247,14 +247,17 @@
     }
 </script>
 
-<script>
+<script type="module">
+    import { traverseCar, traverseCastle, traverseTV, checkMaterial } from './traverseGLTF.js';
     let width = window.innerWidth || document.documentElement.clientWidth;
     let height = window.innerHeight || document.documentElement.clientHeight;
 
     //var modelurl = "https://www.wechatvr.org/webxr_model_lib/8th_wall_glb/1212/car-656462x1o5.glb" 
     //var modelurl = "https://www.wechatvr.org/webxr_model_lib/8th_wall_glb/1212/retro-tv-k6ldw506fb.glb" 
     // var modelurl = "https://www.wechatvr.org/webxr_model_lib/8th_wall_glb/1212/coconut-single-8dg5kau4w4.glb"
-    var modelurl = './car-656462x1o5.glb'
+    // var modelurl = './car-656462x1o5.glb'
+    // var modelurl = './sand-castle-1-78a4v6o324.glb'
+    var modelurl = './retro-tv-k6ldw506fb.glb'
 
 
     const CameraV = getCameraVideo(document.getElementById("camera"))
@@ -262,9 +265,6 @@
     const Three = three()
     const startBtn = document.getElementById('start')
     startBtn.addEventListener('click', start)
-
-
-
 
     function start() {
         startBtn.style.display = 'none'
@@ -402,7 +402,6 @@
             camera.lookAt(0, 0, 0);
             const light = new THREE.AmbientLight(0xffffff, 1); // soft white light
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.5); // 创建平行光源
-            // const sunLight = new THREE.(0xffffff, 1.5); // 创建平行光源
             sunLight.position.set(0, 1, 0);
 
             scene.add(sunLight);
@@ -411,89 +410,17 @@
         }
 
         function loadModel(url) {
-
             //创建gltf加载器
             var loader = new THREE.GLTFLoader();
-
             loader.load(url, function (gltf) {
                 console.log(gltf.scene);
                 //gltf.scene.scale.set(10, 10, 10);
                 scene.add(gltf.scene);
 
-                // 遍历每个子对象
-                gltf.scene.traverse(function (child) {
-                    // 车身
-                    if (child.isMesh) {
-                        const pbrMaterial = new THREE.MeshPhysicalMaterial({
-                            color: child.material.color, // 设置基础颜色
-                            roughness: 0.5, // 设置粗糙度
-                            metalness: 0.5, // 设置金属度
-                            envMapIntensity: 1, // 设置环境映射强度
-                            clearcoat: 0.5, // 设置清漆涂层
-                            clearcoatRoughness: 0.5 // 设置清漆涂层的粗糙度
-                        });
-                        // 检查对象有无贴图、材质如何
-                        // if (child.material) {
-                        //     // 获取子对象的材质属性
-                        //     const material = child.material;
-
-                        //     // 输出材质的类型
-                        //     console.log('材质类型:', material.type);
-
-                        //     // 根据需要可以进一步检查其他材质属性
-                        //     // 例如判断是否有纹理贴图
-                        //     if (material.map) {
-                        //         console.log('有纹理贴图');
-                        //     } else {
-                        //         console.log('没有纹理贴图');
-                        //     }
-                        // } else {
-                        //     console.log('子对象没有材质');
-                        // }
-
-                        // name='Car006'的Mesh为车窗
-                        if (child.name == 'Car006') {
-                            child.material.transparent = true; // 允许材质透明度
-                            child.material.opacity = 0.3; // 设置透明度值
-                            child.material.emissive = child.material.color;
-                            child.material.emissiveMap = child.material.map;
-                            return
-                        }
-                        // 关闭子网格对象的视锥体剔除
-                        child.frustumCulled = false;
-                        //模型阴影
-                        child.castShadow = true;
-                        // 给模型添加 PBR 材质
-                        child.material = pbrMaterial;
-
-                        //模型自发光
-                        // child.material.emissive = child.material.color;
-                        // child.material.emissiveMap = child.material.map;
-                    }
-                    // 车轮
-                    if (child.isGroup) {
-                        // console.log('-----' + child.name + '-----');
-                        child.traverse(function (groupChild) {
-                            if (groupChild.isMesh) {
-                                // console.log(groupChild.name);
-                                groupChild.material.transparent = true; // 允许材质透明度
-                                groupChild.material.opacity = 0.1; // 设置透明度值
-                                groupChild.material = new THREE.MeshPhysicalMaterial({
-                                    color: groupChild.material.color, // 设置基础颜色
-                                    // color: 0xffffff, // 设置基础颜色
-                                    roughness: 0.9, // 设置粗糙度
-                                    metalness: 0.8, // 设置金属度
-                                    envMapIntensity: 1, // 设置环境映射强度
-                                    clearcoat: 0.5, // 设置清漆涂层
-                                    clearcoatRoughness: 0.5, // 设置清漆涂层的粗糙度
-                                    transparent: true, // 允许材质透明度
-                                    opacity: 0.5, // 设置透明度值
-                                });
-                            }
-                        });
-                    }
-                })
-
+                // ！！！遍历模型子对象，添加个性化定制效果！！！
+                // traverseCar(gltf, THREE)
+                traverseTV(gltf, THREE)
+                // traverseCastle(gltf, THREE)
 
             }, function (xhr) { // 显示加载进度
                 if ((xhr.loaded / xhr.total * 100) == 100) {
